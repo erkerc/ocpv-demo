@@ -1,0 +1,47 @@
+
+###We will use OpenShift Web Console to deploy the frontend and backend components of the ParksMap application. 
+### Parksmap application consists of one frontend web application, two backend applications and 2 databases. 
+### - ParksMap frontend web application which is also called `parksmap` and uses OpenShift's service discovery mechanism to discover the backend services deployed and shows their data on the map.
+### - Nationalparks backend application queries for national parks information (including its
+coordinates) that is stored in a MongoDB database. 
+### - MLBParks backend application queries Major League Baseball stadiums in the US that are stored in an another MongoDB database.
+
+
+# Create OpenShift Project
+oc new-project ocpv-demo
+
+# Grant Service Account View Permissions
+
+oc policy add-role-to-user view -z default
+
+### We will be using `Templates` to deploy the application components. A template describes a set of objects that can be parameterized 
+# Instantiate the Application Template
+
+################ Web Console ################
+# Instantiate the MongoDB Template
+# App Name= mongodb-nationalparks
+
+oc get vm
+
+systemctl status mongod
+
+oc get template mongodb-vm-template -n openshift -o yaml |grep -A 31 cloudInitNoCloud
+
+
+# Access http://nationalparks-cnvdemo.apps.cubes.sandbox803.opentlc.com/ws/data/all
+
+# Access http://nationalparks-cnvdemo.apps.cubes.sandbox803.opentlc.com/ws/data/load
+
+
+################ CLI ################
+
+# Instantiate the MongoDB Template
+# App Name= mongodb-mlbparks
+
+oc process mongodb-vm-template -p MONGODB_APPLICATION_NAME=mongodb-mlbparks -n openshift|oc create -f -
+
+oc get vm
+
+# Access http://mlbparks-cnvdemo.apps.cubes.sandbox803.opentlc.com/ws/data/all
+
+# Access http://mlbparks-cnvdemo.apps.cubes.sandbox803.opentlc.com/ws/data/load
