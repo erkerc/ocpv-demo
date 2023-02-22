@@ -1,4 +1,8 @@
 
+
+lsblk 
+
+
 ###We will use OpenShift Web Console to deploy the frontend and backend components of the ParksMap application. 
 ### Parksmap application consists of one frontend web application, two backend applications and 2 databases. 
 ### - ParksMap frontend web application which is also called `parksmap` and uses OpenShift's service discovery mechanism to discover the backend services deployed and shows their data on the map.
@@ -8,7 +12,7 @@ coordinates) that is stored in a MongoDB database.
 
 
 # Create OpenShift Project
-oc new-project ocpv-demo
+oc new-project cnvdemo
 
 # Grant Service Account View Permissions
 
@@ -22,6 +26,8 @@ oc policy add-role-to-user view -z default
 # App Name= mongodb-nationalparks
 
 oc get vm
+
+virtctl -n cnvdemo ssh mongodb-nationalparks --username=redhat --local-ssh=true -i /Users/erkanercan/.ssh/eercan_rsa
 
 systemctl status mongod
 

@@ -72,8 +72,8 @@ objects:
             volumeMode: Block
           source:
             pvc:
-              name: centos8
-              namespace: openshift-virtualization-os-images
+              name: ${VIRTUALIZATION_OS_IMAGE_PVC}
+              namespace: ${VIRTUALIZATION_OS_IMAGE_NAMESPACE}
       running: true
       template:
         metadata:
@@ -163,6 +163,11 @@ parameters:
   name: VM_PASSWORD
   value: openshift
   required: true
+- description: ssh Secret Name
+  displayName: ssh secret name
+  name: SSH_KEY_SECRET_NAME
+  value: ssh-key-secret
+  required: true
 - description: The name for the main application
   displayName: Main Application Name
   name: APPLICATION_NAME
@@ -189,4 +194,14 @@ parameters:
   name: MONGODB_ADMIN_PASSWORD
   value: mongodb
   generate: expression
+  required: true
+- description: Virtualization OS Image PVC 
+  displayName: Virtualization OS Image PVC
+  name: VIRTUALIZATION_OS_IMAGE_PVC
+  value: centos8
+  required: true
+- description: Virtualization OS Image Namespace 
+  displayName: Virtualization OS Image Namespace
+  name: VIRTUALIZATION_OS_IMAGE_NAMESPACE
+  value: openshift-virtualization-os-images
   required: true
