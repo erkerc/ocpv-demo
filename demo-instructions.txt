@@ -1,14 +1,24 @@
+##### Create basic Linux VM ####
+
+#Connect VM
+
+virtctl -n demo ssh centos8-vm --username=centos --local-ssh=true -i /Users/erkanercan/.ssh/eercan_rsa
 
 
+# Add Disk Hot Plug and check disks
 lsblk 
 
+sudo fdisk -l
 
-###We will use OpenShift Web Console to deploy the frontend and backend components of the ParksMap application. 
-### Parksmap application consists of one frontend web application, two backend applications and 2 databases. 
-### - ParksMap frontend web application which is also called `parksmap` and uses OpenShift's service discovery mechanism to discover the backend services deployed and shows their data on the map.
-### - Nationalparks backend application queries for national parks information (including its
+################################################
+
+
+# We will use OpenShift Web Console to deploy the frontend and backend components of the ParksMap application. 
+# Parksmap application consists of one frontend web application, two backend applications and 2 databases. 
+# - ParksMap frontend web application which is also called `parksmap` and uses OpenShift's service discovery mechanism to discover the backend services deployed and shows their data on the map.
+#- Nationalparks backend application queries for national parks information (including its
 coordinates) that is stored in a MongoDB database. 
-### - MLBParks backend application queries Major League Baseball stadiums in the US that are stored in an another MongoDB database.
+# - MLBParks backend application queries Major League Baseball stadiums in the US that are stored in an another MongoDB database.
 
 
 # Create OpenShift Project
@@ -25,6 +35,14 @@ oc policy add-role-to-user view -z default
 # Instantiate the MongoDB Template
 # App Name= mongodb-nationalparks
 
+# Get source image
+oc get pvc -n openshift-virtualization-os-images 
+# centos-stream8-2f16c067b974
+
+
+# Cat public image
+cat ~/.ssh/eercan_rsa.pub 
+
 oc get vm
 
 virtctl -n cnvdemo ssh mongodb-nationalparks --username=redhat --local-ssh=true -i /Users/erkanercan/.ssh/eercan_rsa
@@ -34,9 +52,9 @@ systemctl status mongod
 oc get template mongodb-vm-template -n openshift -o yaml |grep -A 31 cloudInitNoCloud
 
 
-# Access http://nationalparks-cnvdemo.apps.cubes.sandbox803.opentlc.com/ws/data/all
+# Access http://nationalparks-cnvdemo.apps.cubes.sandbox1254.opentlc.com/ws/data/all
 
-# Access http://nationalparks-cnvdemo.apps.cubes.sandbox803.opentlc.com/ws/data/load
+# Access http://nationalparks-cnvdemo.apps.cubes.sandbox1254.opentlc.com/ws/data/load
 
 
 ################ CLI ################
@@ -48,6 +66,6 @@ oc process mongodb-vm-template -p MONGODB_APPLICATION_NAME=mongodb-mlbparks -n o
 
 oc get vm
 
-# Access http://mlbparks-cnvdemo.apps.cubes.sandbox803.opentlc.com/ws/data/all
+# Access http://mlbparks-cnvdemo.apps.cubes.sandbox1254.opentlc.com/ws/data/all
 
-# Access http://mlbparks-cnvdemo.apps.cubes.sandbox803.opentlc.com/ws/data/load
+# Access http://mlbparks-cnvdemo.apps.cubes.sandbox1254.opentlc.com/ws/data/load

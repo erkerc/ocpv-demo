@@ -4,7 +4,7 @@ labels:
   app: mongodb
 metadata:
   annotations:
-    name.os.template.kubevirt.io/centos8: CentOS 8 or higher
+    name.os.template.kubevirt.io/centos8: CentOS 8 Stream or higher
     openshift.io/display-name: MongoDB Virtual Machine Template
     openshift.io/long-description: This template provides a standalone MongoDB Virtual Machine with a database created. The database is stored on persistent storage.  The database name, username, and password are chosen via parameters when provisioning this service.
     openshift.io/provider-display-name: Red Hat Turkey Solution Architect Team
@@ -67,7 +67,7 @@ objects:
             - ReadWriteMany
             resources:
               requests:
-                storage: 20Gi
+                storage: 40Gi
             storageClassName: ocs-storagecluster-ceph-rbd
             volumeMode: Block
           source:
@@ -130,6 +130,8 @@ objects:
                 user: ${VM_USER_NAME}
                 password: ${VM_PASSWORD}
                 chpasswd: { expire: False }
+                ssh_authorized_keys: 
+                  - ${SSH_AUTHORIZED_KEYS}
                 runcmd:
                   - curl "https://raw.githubusercontent.com/erkerc/utils/main/repos/mongodb-org-3.6.repo" --output /etc/yum.repos.d/mongodb-org-3.6.repo
                   - yum install -y bash-completion mongodb-org
@@ -163,11 +165,10 @@ parameters:
   name: VM_PASSWORD
   value: openshift
   required: true
-- description: ssh Secret Name
-  displayName: ssh secret name
-  name: SSH_KEY_SECRET_NAME
-  value: ssh-key-secret
-  required: true
+- description: SSH Authorized Keys
+  displayName: SSH Authorized Keys
+  name: SSH_AUTHORIZED_KEYS
+  required: false
 - description: The name for the main application
   displayName: Main Application Name
   name: APPLICATION_NAME
@@ -198,7 +199,7 @@ parameters:
 - description: Virtualization OS Image PVC 
   displayName: Virtualization OS Image PVC
   name: VIRTUALIZATION_OS_IMAGE_PVC
-  value: centos8
+  value: centos-stream8-2f16c067b974
   required: true
 - description: Virtualization OS Image Namespace 
   displayName: Virtualization OS Image Namespace
