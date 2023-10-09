@@ -1,0 +1,18 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: oracle-database23c-base
+  namespace: openshift-virtualization-os-images
+spec:
+  pvc:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: 40Gi
+    storageClassName: ocs-storagecluster-ceph-rbd
+    volumeMode: Block
+  source:
+    pvc:
+      name: oracle-db-golden
+      namespace: cnv-demo

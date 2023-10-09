@@ -1,42 +1,51 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 labels:
-  app: mongodb
+  app: oracle-weblogic14
 metadata:
   annotations:
     name.os.template.kubevirt.io/centos8: CentOS 8 Stream or higher
-    openshift.io/display-name: MongoDB Virtual Machine Template
-    openshift.io/long-description: This template provides a standalone MongoDB Virtual Machine with a database created. The database is stored on persistent storage.  The database name, username, and password are chosen via parameters when provisioning this service.
+    openshift.io/display-name: Oracle Weblogic 14.1 Server Virtual Machine Template
+    openshift.io/long-description: This template provides a standalone Oracle Weblogic Server Virtual Machine. 
     openshift.io/provider-display-name: Red Hat Turkey Solution Architect Team
-    iconClass: icon-mongodb
-    tags: 'database,mongodb'
-  name: mongodb-vm-template
+    iconClass: icon-other-linux
+    tags: 'oracle'
+  name: oracle-weblogic14-vm-template
   namespace: openshift
 objects:
+  - kind: Route
+    apiVersion: v1
+    metadata:
+      name: "${APPLICATION_NAME}"
+      labels:
+        app: workshop
+        component: "${APPLICATION_NAME}"
+        role: backend
+        type: application-server
+    spec:
+      to:
+        kind: Service
+        name: "${APPLICATION_NAME}"
+        weight: 100
+      port:
+        targetPort: admin-console
   - apiVersion: v1
     kind: Service
     metadata:
-      annotations:
-        template.openshift.io/expose-uri: 'mongodb://{.spec.clusterIP}:{.spec.ports[?(.name=="mongo")].port}'
       labels:
         app: ${APPLICATION_NAME}
-        component: "${MONGODB_APPLICATION_NAME}"
-        role: database
-      name: '${MONGODB_APPLICATION_NAME}'
+        component: "${APPLICATION_NAME}"
+        type: application-server
+      name: '${APPLICATION_NAME}'
     spec:
       ports:
-        - name: mongo
+        - name: admin-console
           nodePort: 0
-          port: 27017
+          port: 7001
           protocol: TCP
-          targetPort: 27017
+          targetPort: 7001
       selector:
-        flavor.template.kubevirt.io/small: 'true'
-        kubevirt.io/domain: ${MONGODB_APPLICATION_NAME}
-        kubevirt.io/size: small
-        os.template.kubevirt.io/centos8: 'true'
-        vm.kubevirt.io/name: ${MONGODB_APPLICATION_NAME}
-        workload.template.kubevirt.io/server: 'true'
+        vm.kubevirt.io/name: '${APPLICATION_NAME}'
       sessionAffinity: None
       type: ClusterIP
   - apiVersion: kubevirt.io/v1alpha3
@@ -44,23 +53,23 @@ objects:
     metadata:
       annotations:
         name.os.template.kubevirt.io/centos8: CentOS 8 or higher
-        openshift.io/display-name: MongoDB Virtual Machine 
+        openshift.io/display-name: Oracle Weblogic 14 Virtual Machine 
       labels:
         app: ${APPLICATION_NAME}
         app.kubernetes.io/part-of: ${APPLICATION_NAME}
         flavor.template.kubevirt.io/small: 'true'
         os.template.kubevirt.io/centos8: 'true'
-        kubevirt.io/domain: ${MONGODB_APPLICATION_NAME}
+        kubevirt.io/domain: ${APPLICATION_NAME}
         kubevirt.io/size: small
         workload.template.kubevirt.io/server: 'true'
-        vm.kubevirt.io/name: ${MONGODB_APPLICATION_NAME}
-      name: ${MONGODB_APPLICATION_NAME}
+        vm.kubevirt.io/name: ${APPLICATION_NAME}
+      name: ${APPLICATION_NAME}
     spec:
       dataVolumeTemplates:
       - apiVersion: cdi.kubevirt.io/v1alpha1
         kind: DataVolume
         metadata:
-          name: ${MONGODB_APPLICATION_NAME}-rootdisk
+          name: ${APPLICATION_NAME}-rootdisk
         spec:
           pvc:
             accessModes:
@@ -83,15 +92,15 @@ objects:
             vm.kubevirt.io/workload: server
           labels:
             flavor.template.kubevirt.io/small: 'true'
-            kubevirt.io/domain: ${MONGODB_APPLICATION_NAME}
+            kubevirt.io/domain: ${APPLICATION_NAME}
             kubevirt.io/size: small
             os.template.kubevirt.io/centos8: 'true'
-            vm.kubevirt.io/name: ${MONGODB_APPLICATION_NAME}
+            vm.kubevirt.io/name: ${APPLICATION_NAME}
             workload.template.kubevirt.io/server: 'true'
         spec:
           domain:
             cpu:
-              cores: 1
+              cores: 4
               sockets: 1
               threads: 1
             devices:
@@ -99,7 +108,7 @@ objects:
               - bootOrder: 1
                 disk:
                   bus: virtio
-                name: ${MONGODB_APPLICATION_NAME}-rootdisk
+                name: ${APPLICATION_NAME}-rootdisk
               - disk:
                   bus: virtio
                 name: cloudinitdisk
@@ -113,17 +122,17 @@ objects:
               type: pc-q35-rhel8.4.0
             resources:
               requests:
-                memory: 2Gi
+                memory: 6Gi
           evictionStrategy: LiveMigrate
-          hostname: ${MONGODB_APPLICATION_NAME}
+          hostname: ${APPLICATION_NAME}
           networks:
           - name: nic-0
             pod: {}
           terminationGracePeriodSeconds: 180
           volumes:
           - dataVolume: 
-              name: ${MONGODB_APPLICATION_NAME}-rootdisk 
-            name: ${MONGODB_APPLICATION_NAME}-rootdisk 
+              name: ${APPLICATION_NAME}-rootdisk 
+            name: ${APPLICATION_NAME}-rootdisk 
           - cloudInitNoCloud:
               userData: |-
                 #cloud-config
@@ -132,38 +141,23 @@ objects:
                 chpasswd: { expire: False }
                 ssh_authorized_keys: 
                   - ${SSH_AUTHORIZED_KEYS}
-                runcmd:
-                  - curl "https://raw.githubusercontent.com/erkerc/utils/main/repos/mongodb-org-3.6.repo" --output /etc/yum.repos.d/mongodb-org-3.6.repo
-                  - yum install -y bash-completion mongodb-org
-                  - systemctl daemon-reload
-                  - systemctl enable mongod.service
-                  - systemctl start mongod.service
-                  - >
-                    mongo admin --host localhost --eval "db.createUser({user: 'root', pwd: '${MONGODB_ADMIN_PASSWORD}', roles: [{role: 'root', db: 'admin'}]});"
-                  - >
-                    mongo admin --host localhost --eval "db.getSiblingDB('mongodb').createUser({user: '${MONGODB_USER}', pwd: '${MONGODB_PASSWORD}', roles: [{role: 'dbOwner', db: '${MONGODB_DATABASE}'}]});"
-                  - >
-                    sed -i -e 's/bindIp: 127.0.0.1/bindIp: 0.0.0.0/g' /etc/mongod.conf
-                  - >
-                    sed -i -e 's/^#security:/security:/g' /etc/mongod.conf
-                  - >
-                    sed -i -e '/^security:/a \  authorization: enabled' /etc/mongod.conf
-                  - systemctl restart mongod.service
             name: cloudinitdisk
 parameters:
-- description: The name for the mongoDB application and virtual machine.
-  displayName: MongoDB Application Name
-  name: MONGODB_APPLICATION_NAME
-  value: mongodb
-  required: true
+- description: The name for the  application and virtual machine.
+  displayName: Application Name
+  name: APPLICATION_NAME
+  generate: expression
+  from: 'oracle-weblogic-[a-z0-9]{16}'
 - description: Virtual Machine Username
   displayName: Virtual Machine Username
   name: VM_USER_NAME
   required: true
-  value: redhat
+  generate: expression
+  from: 'admin-[a-z0-9]{16}'
 - description: Virtual Machine User Password 
   name: VM_PASSWORD
-  value: openshift
+  generate: expression
+  from: 'redhat-[a-z0-9]{16}'
   required: true
 - description: SSH Authorized Keys
   displayName: SSH Authorized Keys
@@ -174,32 +168,10 @@ parameters:
   name: APPLICATION_NAME
   value: workshop
   required: true
-- description: Database name
-  displayName: Database name
-  name: MONGODB_DATABASE
-  value: mongodb
-  required: true
-- description: Database username
-  displayName: Database username
-  name: MONGODB_USER
-  value: mongodb
-  required: true
-- description: Database user password
-  displayName: Database user password
-  name: MONGODB_PASSWORD
-  value: mongodb
-  generate: expression
-  required: true
-- description: Database admin password
-  displayName: Database admin password
-  name: MONGODB_ADMIN_PASSWORD
-  value: mongodb
-  generate: expression
-  required: true
 - description: Virtualization OS Image PVC 
   displayName: Virtualization OS Image PVC
   name: VIRTUALIZATION_OS_IMAGE_PVC
-  value: centos-stream8-894237fb27f8
+  value: oracle-weblogic14-base
   required: true
 - description: Virtualization OS Image Namespace 
   displayName: Virtualization OS Image Namespace

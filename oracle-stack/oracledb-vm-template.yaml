@@ -1,0 +1,157 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: oracle-database23c
+metadata:
+  annotations:
+    name.os.template.kubevirt.io/centos8: CentOS 8 Stream or higher
+    openshift.io/display-name: Oracle Database 23c Server Virtual Machine Template
+    openshift.io/long-description: This template provides a standalone Oracle Oracle Database 23c Server Virtual Machine. 
+    openshift.io/provider-display-name: Red Hat Turkey Solution Architect Team
+    iconClass: icon-other-linux
+    tags: 'oracle'
+  name: oracle-database23c-vm-template
+  namespace: openshift
+objects:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: ${APPLICATION_NAME}
+        component: "${APPLICATION_NAME}"
+        type: application-server
+      name: '${APPLICATION_NAME}'
+    spec:
+      ports:
+        - name: jdbc
+          nodePort: 0
+          port: 1521
+          protocol: TCP
+          targetPort: 1521
+      selector:
+        vm.kubevirt.io/name: '${APPLICATION_NAME}'
+      sessionAffinity: None
+      type: ClusterIP
+  - apiVersion: kubevirt.io/v1alpha3
+    kind: VirtualMachine
+    metadata:
+      annotations:
+        name.os.template.kubevirt.io/centos8: CentOS 8 or higher
+        openshift.io/display-name: Oracle Database 23c Virtual Machine 
+      labels:
+        app: ${APPLICATION_NAME}
+        app.kubernetes.io/part-of: ${APPLICATION_NAME}
+        flavor.template.kubevirt.io/small: 'true'
+        os.template.kubevirt.io/centos8: 'true'
+        kubevirt.io/domain: ${APPLICATION_NAME}
+        kubevirt.io/size: small
+        workload.template.kubevirt.io/server: 'true'
+        vm.kubevirt.io/name: db-${APPLICATION_NAME}
+      name: ${APPLICATION_NAME}
+    spec:
+      dataVolumeTemplates:
+      - apiVersion: cdi.kubevirt.io/v1alpha1
+        kind: DataVolume
+        metadata:
+          name: ${APPLICATION_NAME}-rootdisk
+        spec:
+          pvc:
+            accessModes:
+            - ReadWriteMany
+            resources:
+              requests:
+                storage: 40Gi
+            storageClassName: ocs-storagecluster-ceph-rbd
+            volumeMode: Block
+          source:
+            pvc:
+              name: ${VIRTUALIZATION_OS_IMAGE_PVC}
+              namespace: ${VIRTUALIZATION_OS_IMAGE_NAMESPACE}
+      running: true
+      template:
+        metadata:
+          annotations:
+            vm.kubevirt.io/flavor: small
+            vm.kubevirt.io/os: centos8
+            vm.kubevirt.io/workload: server
+          labels:
+            flavor.template.kubevirt.io/small: 'true'
+            kubevirt.io/domain: ${APPLICATION_NAME}
+            kubevirt.io/size: small
+            os.template.kubevirt.io/centos8: 'true'
+            vm.kubevirt.io/name: ${APPLICATION_NAME}
+            workload.template.kubevirt.io/server: 'true'
+        spec:
+          domain:
+            cpu:
+              cores: 4
+              sockets: 1
+              threads: 1
+            devices:
+              disks:
+              - bootOrder: 1
+                disk:
+                  bus: virtio
+                name: ${APPLICATION_NAME}-rootdisk
+              - disk:
+                  bus: virtio
+                name: cloudinitdisk
+              interfaces:
+              - masquerade: {}
+                model: virtio
+                name: nic-0
+              networkInterfaceMultiqueue: true
+              rng: {}
+            machine:
+              type: pc-q35-rhel8.4.0
+            resources:
+              requests:
+                memory: 4Gi
+          evictionStrategy: LiveMigrate
+          hostname: ${APPLICATION_NAME}
+          networks:
+          - name: nic-0
+            pod: {}
+          terminationGracePeriodSeconds: 180
+          volumes:
+          - dataVolume: 
+              name: ${APPLICATION_NAME}-rootdisk 
+            name: ${APPLICATION_NAME}-rootdisk 
+          - cloudInitNoCloud:
+              userData: |-
+                #cloud-config
+                user: ${VM_USER_NAME}
+                password: ${VM_PASSWORD}
+                chpasswd: { expire: False }
+                ssh_authorized_keys: 
+                  - ${SSH_AUTHORIZED_KEYS}
+            name: cloudinitdisk
+parameters:
+- description: The name for the  application and virtual machine.
+  displayName: Application Name
+  name: APPLICATION_NAME
+  generate: expression
+  from: 'oracle-database-[a-z0-9]{16}'
+- description: Virtual Machine Username
+  displayName: Virtual Machine Username
+  name: VM_USER_NAME
+  required: true
+  value: admin
+- description: Virtual Machine User Password 
+  name: VM_PASSWORD
+  value: redhat
+  required: true
+- description: SSH Authorized Keys
+  displayName: SSH Authorized Keys
+  name: SSH_AUTHORIZED_KEYS
+  required: false
+- description: Virtualization OS Image PVC 
+  displayName: Virtualization OS Image PVC
+  name: VIRTUALIZATION_OS_IMAGE_PVC
+  value: oracle-database23c-base
+  required: true
+- description: Virtualization OS Image Namespace 
+  displayName: Virtualization OS Image Namespace
+  name: VIRTUALIZATION_OS_IMAGE_NAMESPACE
+  value: openshift-virtualization-os-images
+  required: true
