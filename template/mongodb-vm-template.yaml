@@ -70,10 +70,10 @@ objects:
                 storage: 40Gi
             storageClassName: ocs-storagecluster-ceph-rbd
             volumeMode: Block
-          source:
-            pvc:
-              name: ${VIRTUALIZATION_OS_IMAGE_PVC}
-              namespace: ${VIRTUALIZATION_OS_IMAGE_NAMESPACE}
+          sourceRef:
+            kind: DataSource
+            name: '${DATA_SOURCE_NAME}'
+            namespace: '${DATA_SOURCE_NAMESPACE}'
       running: true
       template:
         metadata:
@@ -196,13 +196,13 @@ parameters:
   value: mongodb
   generate: expression
   required: true
-- description: Virtualization OS Image PVC 
-  displayName: Virtualization OS Image PVC
-  name: VIRTUALIZATION_OS_IMAGE_PVC
-  value: centos-stream8-894237fb27f8
+- name: DATA_SOURCE_NAME
+  description: Name of the DataSource to clone
+  value: centos-stream8
   required: true
-- description: Virtualization OS Image Namespace 
-  displayName: Virtualization OS Image Namespace
-  name: VIRTUALIZATION_OS_IMAGE_NAMESPACE
+- name: DATA_SOURCE_NAMESPACE
+  description: Namespace of the DataSource
   value: openshift-virtualization-os-images
   required: true
+
+

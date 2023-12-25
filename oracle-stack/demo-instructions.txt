@@ -7,7 +7,7 @@ rm -rf ~/.ssh/known_hosts
   bootcmd:
   # mount the ConfigMap
   - "mkdir /mnt/api-spec"
-  - "mount /dev/$(lsblk --nodeps -no name,serial | grep 80ZYLN | cut -f1 -d' ') /mnt/api-spec"
+  - "mount /dev/$(lsblk --nodeps -no name,serial | grep 9HQW05 | cut -f1 -d' ') /mnt/api-spec"
 
 #Connect VM
 
@@ -19,6 +19,19 @@ df -k
 lsblk 
 
 sudo fdisk -l	
+
+###################Oracle Database Application############################
+
+virtctl -n cnv-demo ssh admin@oracle-db-golden
+
+
+su oracle
+sqlplus / as sysdba
+ alter session set "_ORACLE_SCRIPT"=true;
+ 
+ #SID = FREE
+ CREATE USER erkan IDENTIFIED BY redhat;
+ GRANT CREATE SESSION TO erkan;
 
 
 ##### Oracle Web Logic Server ####
@@ -40,25 +53,6 @@ DOMAIN_HOME="/home/admin/Oracle/Middleware/Oracle_Home/user_projects/domains/wl_
 systemctl status weblogic
 
 
-###################Oracle Database Application############################
-
-virtctl -n cnv-demo ssh admin@oracle-db-golden
-Activate the web console with: systemctl enable --now cockpit.socket
-
-Last login: Mon Oct  9 16:50:30 2023 from 10.128.2.46
-[admin@oracle-db-golden ~]$ su oracle
-Password: 
-[oracle@oracle-db-golden admin]$ sqlplus / as sysdba
-
-SQL*Plus: Release 23.0.0.0.0 - Production on Mon Oct 9 16:51:11 2023
-Version 23.3.0.23.09
-
-Copyright (c) 1982, 2023, Oracle.  All rights reserved.
-
-
-Connected to:
-Oracle Database 23c Free Release 23.0.0.0.0 - Develop, Learn, and Run for Free
-Version 23.3.0.23.09
 
 
 
